@@ -1,0 +1,53 @@
+# Node
+node_modules/
+dist/
+dist-ssr/
+*.local
+.vite
+.next/
+out/
+build/
+
+# Python
+venv/
+.venv/
+env/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.ipynb_checkpoints/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# IDEs & System
+.vscode/
+.idea/
+.cursor/
+.DS_Store
+Thumbs.db
+*.log
+
+# Project-specific temp & uploads
+backend/tmp/*
+!backend/tmp/.gitkeep
+
+# Environment files
+.env
+.env.development.local
+.env.test.local
+.env.production.local
+.env.local
+
+# Database / Diagnostic outputs
+*.db
+*.sqlite
+postgrest_schema.json
+dump.txt
+lint_output.txt
+lint_output_utf8.txt
+RUNTIME_VALIDATION_REPORT.json
+
+# Nested Workspace Copies
+ws/

@@ -1,0 +1,39 @@
+# Web framework
+fastapi[standard]>=0.111.0
+uvicorn[standard]>=0.29.0
+
+# Supabase - must be >=2.10.0 for sb_secret_... / sb_publishable_... key format
+supabase>=2.10.0
+
+# Config & validation
+pydantic>=2.0.0
+pydantic-settings>=2.0.0
+python-dotenv>=1.0.0
+
+# AI / ML
+groq>=0.9.0
+sentence-transformers>=3.0.0
+ultralytics>=8.2.0
+inference-sdk>=0.9.0
+
+# Computer vision
+opencv-python-headless>=4.9.0
+
+# Video processing
+# moviepy 2.x changed imports: use `from moviepy import VideoFileClip` (NOT moviepy.editor)
+moviepy>=2.0.0
+
+# PDF generation (reportlab preferred; fpdf2 as optional fallback)
+reportlab>=4.0.0
+fpdf2>=2.7.0
+
+# PDF parsing
+pymupdf>=1.24.0
+
+# Text splitting (LangChain subset - no heavy LLM deps)
+langchain-text-splitters>=0.2.0
+google-genai>=0.1.1
+mediapipe>=0.10.0
+celery>=5.3.0
+redis>=5.0.0
+

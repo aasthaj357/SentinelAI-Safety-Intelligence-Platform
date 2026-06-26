@@ -1,0 +1,230 @@
+{
+  "name": "Safety Intelligence Orchestrator",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "e633d7b4-3a21-4d37-8f74-cc5e324c4e09",
+      "name": "Start",
+      "type": "n8n-nodes-base.start",
+      "typeVersion": 1,
+      "position": [ 240, 300 ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:8000/api/agents/observation",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "project_id", "value": "={{$json.project_id}}" },
+            { "name": "video_id", "value": "={{$json.video_id}}" },
+            { "name": "data", "value": "={{$json.data}}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "obs-agent-node",
+      "name": "Observation Agent",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [ 460, 300 ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:8000/api/agents/communication",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "project_id", "value": "={{$json.project_id}}" },
+            { "name": "video_id", "value": "={{$json.video_id}}" },
+            { "name": "data", "value": "={{$json.data}}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "comm-agent-node",
+      "name": "Communication Agent",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [ 680, 300 ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:8000/api/agents/sop",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "project_id", "value": "={{$json.project_id}}" },
+            { "name": "data", "value": "={{$json.data}}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "sop-agent-node",
+      "name": "SOP Compliance Agent",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [ 900, 300 ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:8000/api/agents/auditor",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "project_id", "value": "={{$json.project_id}}" },
+            { "name": "video_id", "value": "={{$json.video_id}}" },
+            { "name": "data", "value": "={{$json.data}}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "auditor-agent-node",
+      "name": "Compliance Auditor Agent",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [ 1120, 300 ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:8000/api/agents/risk",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "project_id", "value": "={{$json.project_id}}" },
+            { "name": "data", "value": "={{$json.data}}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "risk-agent-node",
+      "name": "Risk Assessment Agent",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [ 1340, 300 ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:8000/api/agents/prediction",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "project_id", "value": "={{$json.project_id}}" },
+            { "name": "data", "value": "={{$json.data}}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "pred-agent-node",
+      "name": "Incident Prediction Agent",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [ 1560, 300 ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:8000/api/agents/training",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "project_id", "value": "={{$json.project_id}}" },
+            { "name": "data", "value": "={{$json.data}}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "train-agent-node",
+      "name": "Training Recommendation Agent",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [ 1780, 300 ]
+    }
+  ],
+  "connections": {
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Observation Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Observation Agent": {
+      "main": [
+        [
+          {
+            "node": "Communication Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Communication Agent": {
+      "main": [
+        [
+          {
+            "node": "SOP Compliance Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SOP Compliance Agent": {
+      "main": [
+        [
+          {
+            "node": "Compliance Auditor Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compliance Auditor Agent": {
+      "main": [
+        [
+          {
+            "node": "Risk Assessment Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Risk Assessment Agent": {
+      "main": [
+        [
+          {
+            "node": "Incident Prediction Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Incident Prediction Agent": {
+      "main": [
+        [
+          {
+            "node": "Training Recommendation Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {}
+}
