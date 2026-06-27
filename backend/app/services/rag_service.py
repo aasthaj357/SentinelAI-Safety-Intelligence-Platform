@@ -100,7 +100,7 @@ class RagService:
                 data = [d for d in data if d.get("user_id") == user_id]
             return data
         except Exception as e:
-            print(f"RAG RPC search error, using local fallback: {e}")
+            logger.warning("RAG RPC search error, using local fallback: %s", e)
             return self._local_similarity_search(project_id, query_embedding, user_id, top_k)
 
     def _local_similarity_search(self, project_id: str, query_embedding: list, user_id: str, top_k: int) -> list:

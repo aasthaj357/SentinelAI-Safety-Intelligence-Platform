@@ -2,10 +2,13 @@ from fastapi import APIRouter
 from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
 import json
+import logging
 from groq import Groq
 from app.core.config import settings
 from app.core.supabase_client import supabase
 from app.services.rag_service import get_rag_service
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 client = Groq(api_key=settings.GROQ_API_KEY)
@@ -26,7 +29,7 @@ def call_groq_json(system_prompt: str, user_prompt: str) -> dict:
         content = content.replace("```json", "").replace("```", "").strip()
         return json.loads(content)
     except Exception as e:
-        print(f"Groq Agent Error: {e}")
+        logger.error("Groq Agent Error: %s", e)
         return {"error": str(e)}
 
 # --- Payloads ---

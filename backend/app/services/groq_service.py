@@ -1,6 +1,9 @@
 import json
+import logging
 from groq import Groq
 from app.core.config import settings
+
+logger = logging.getLogger(__name__)
 
 client = Groq(api_key=settings.GROQ_API_KEY)
 
@@ -190,7 +193,7 @@ Return ONLY valid JSON:
                 report_data["training_recommendations"] = auto_recs
             return report_data
         except Exception as e:
-            print(f"Error generating Groq report: {e}")
+            logger.error("Error generating Groq report: %s", e)
             return {
                 "detected_task": task,
                 "executive_summary": f"Risk score: {risk_data.get('score', 0)}/100. {len(dedup_violations)} violation(s) detected.",

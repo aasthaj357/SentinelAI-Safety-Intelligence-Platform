@@ -3,6 +3,9 @@ from pydantic import BaseModel
 from app.core.supabase_client import supabase
 from app.services.rag_service import get_rag_service
 import uuid
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 rag = get_rag_service()
@@ -69,7 +72,7 @@ def _clear_project_data(project_id: str, user_id: str | None = None):
                 query = query.eq("user_id", user_id)
             query.execute()
         except Exception as _e:
-            print(f"Warning: could not clear table {table}: {_e}")
+            logger.warning("Could not clear table %s: %s", table, _e)
 
     # Special case: video_uploads
     query = supabase.table("video_uploads").delete().eq("project_id", project_id)
@@ -126,7 +129,7 @@ def load_demo_dataset(request: DemoLoadRequest):
     try:
         _clear_project_data(project_id, user_id)
     except Exception as e:
-        print(f"Error clearing old data: {e}")
+        logger.warning("Error clearing old data: %s", e)
 
     video1_id = str(uuid.uuid4())
     video2_id = str(uuid.uuid4())
@@ -514,7 +517,7 @@ def load_demo_dataset(request: DemoLoadRequest):
             metadata={"title": "Demo SOP Document"}
         )
     except Exception as e:
-        print(f"Error seeding knowledge base: {e}")
+        logger.error("Error seeding knowledge base: %s", e)
 
     return {"status": "success", "message": "Demo dataset loaded via backend.", "project_id": project_id}
 
@@ -525,7 +528,7 @@ def reset_demo_dataset(request: DemoLoadRequest):
         _clear_project_data(request.project_id, request.user_id)
         return {"status": "success", "message": "Demo data reset for current project."}
     except Exception as e:
-        print(f"Error resetting data: {e}")
+        logger.error("Error resetting data: %s", e)
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -545,5 +548,5 @@ def reset_all_user_data(request: ResetUserRequest):
         
         return {"status": "success", "message": f"All data for user {request.user_id} has been deleted."}
     except Exception as e:
-        print(f"Error resetting all user data: {e}")
+        logger.error("Error resetting all user data: %s", e)
         raise HTTPException(status_code=500, detail=str(e))

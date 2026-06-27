@@ -1,6 +1,9 @@
 import os
+import logging
 from groq import Groq
 from app.core.config import settings
+
+logger = logging.getLogger(__name__)
 
 client = Groq(api_key=settings.GROQ_API_KEY)
 
@@ -27,7 +30,7 @@ class WhisperService:
                 "segments": segments
             }
         except Exception as e:
-            print(f"Whisper transcription error: {e}")
+            logger.error("Whisper transcription error: %s", e)
             return {"text": "", "segments": []}
 
     def analyze_safety_communications(self, transcript_text: str) -> list:
@@ -56,7 +59,7 @@ class WhisperService:
                 temperature=0.0
             )
         except Exception as e:
-            print(f"Whisper communication analysis error: {e}")
+            logger.error("Whisper communication analysis error: %s", e)
             return []
         
         # Parse JSON
@@ -68,7 +71,7 @@ class WhisperService:
             findings = json.loads(content)
             return findings
         except Exception as e:
-            print(f"Error parsing safety communications: {e}")
+            logger.error("Error parsing safety communications: %s", e)
             return []
 
 whisper_service = WhisperService()
