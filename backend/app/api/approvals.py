@@ -64,8 +64,9 @@ def take_approval_action(request_id: str, request: ApprovalAction, background_ta
                     
                     supabase.table("analysis_jobs").update({"status": "processing"}).eq("id", target_id).execute()
                     
+                    func = getattr(process_video_job, "run", process_video_job)
                     background_tasks.add_task(
-                        process_video_job,
+                        func,
                         job_id=target_id,
                         video_id=job_data["target_id"],
                         project_id=video_data["project_id"],

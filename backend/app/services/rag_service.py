@@ -13,6 +13,9 @@ def _get_model():
     global _model
     if _model is None:
         try:
+            import os
+            os.environ["HF_HOME"] = os.path.abspath("tmp/hf_cache")
+            os.environ["SENTENCE_TRANSFORMERS_HOME"] = os.path.abspath("tmp/st_cache")
             from sentence_transformers import SentenceTransformer
             _model = SentenceTransformer('all-MiniLM-L6-v2')
         except Exception as e:

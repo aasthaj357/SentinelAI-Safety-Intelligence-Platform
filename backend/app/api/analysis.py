@@ -48,7 +48,8 @@ def analyze_video(request: AnalyzeRequest, background_tasks: BackgroundTasks):
     job_id = res.data[0]["id"]
     
     # Run via background tasks to avoid celery queue hang when no workers are running
-    background_tasks.add_task(process_video_job, job_id, request.video_id, request.project_id, file_url, request.user_id)
+    func = getattr(process_video_job, "run", process_video_job)
+    background_tasks.add_task(func, job_id, request.video_id, request.project_id, file_url, request.user_id)
     
     return {"status": "success", "job_id": job_id, "message": "Analysis queued"}
 

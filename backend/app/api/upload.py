@@ -80,7 +80,8 @@ async def upload_video(
         raise HTTPException(status_code=500, detail="Failed to create analysis job")
 
     job_id = job_res.data[0]["id"]
-    background_tasks.add_task(process_video_job, job_id, video_id, project_id, storage_path, user_id)
+    func = getattr(process_video_job, "run", process_video_job)
+    background_tasks.add_task(func, job_id, video_id, project_id, storage_path, user_id)
 
     return {
         "status": "success",

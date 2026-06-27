@@ -108,7 +108,10 @@ def process_video_job(
         agents[key]["output"] = output
         agents[key]["error"] = error
         agents[key]["updated_at"] = time.time()
-        supabase.table("analysis_jobs").update({"result": {"agents": agents}}).eq("id", job_id).execute()
+        try:
+            supabase.table("analysis_jobs").update({"result": {"agents": agents}}).eq("id", job_id).execute()
+        except Exception as db_err:
+            logger.error(f"Failed to update analysis_jobs result in DB for agent {key}: {db_err}")
         
         # Log to RAG
         rag = get_rag_service()
@@ -306,6 +309,55 @@ def process_video_job(
         with open(local_video_path, "wb") as f:
             f.write(res)
 
+        # -------------------------------------------------------------
+        # Whisper Transcription (Audio Analysis)
+        # -------------------------------------------------------------
+        local_audio_path = f"tmp/audio_{video_id}.mp3"
+        transcript_text = ""
+        try:
+            from moviepy import VideoFileClip
+            logger.info(f"Extracting audio from video {local_video_path}")
+            clip = VideoFileClip(local_video_path)
+            if clip.audio is not None:
+                clip.audio.write_audiofile(local_audio_path, logger=None)
+                clip.close()
+                
+                logger.info(f"Transcribing audio from {local_audio_path} using Whisper")
+                from app.services.whisper_service import get_whisper_service
+                whisper = get_whisper_service()
+                trans_res = whisper.transcribe_audio(local_audio_path)
+                transcript_text = trans_res.get("text", "")
+                
+                if transcript_text.strip():
+                    logger.info(f"Whisper transcription succeeded: {transcript_text[:100]}...")
+                    # Save to database
+                    supabase.table("video_transcripts").insert({
+                        "video_id": video_id,
+                        "transcript_text": transcript_text
+                    }).execute()
+                    
+                    # Log to RAG
+                    rag = get_rag_service()
+                    rag.embed_and_store(
+                        project_id=project_id,
+                        user_id=user_id,
+                        source_type="transcript",
+                        source_id=video_id,
+                        content=f"Video Transcript: {transcript_text}"
+                    )
+                else:
+                    logger.info("Whisper transcription returned empty text.")
+            else:
+                logger.info("No audio track found in the video.")
+                clip.close()
+        except Exception as audio_err:
+            logger.warning(f"Audio transcription failed or skipped: {audio_err}")
+        finally:
+            if os.path.exists(local_audio_path):
+                try:
+                    os.remove(local_audio_path)
+                except Exception:
+                    pass
         # -------------------------------------------------------------
         # STEP 2: Frame Extraction Agent
         # -------------------------------------------------------------
