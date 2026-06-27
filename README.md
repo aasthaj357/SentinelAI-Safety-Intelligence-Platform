@@ -93,8 +93,7 @@ graph TD
 │   │   └── App.jsx         # Client routing
 │   ├── index.html          # HTML Entry
 │   ├── package.json        # Frontend dependencies
-│   ├── tailwind.config.js  # Styling guidelines
-│   └── vercel.json         # Vercel routing configuration
+│   └── tailwind.config.js  # Styling guidelines
 ├── supabase/
 │   └── migrations/         # PostgreSQL schema definition migrations
 ├── render.yaml             # Render deployment blueprint
@@ -197,7 +196,6 @@ VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
 ## 🚢 Deployment Instructions
 
 ### Frontend (Vercel)
-The project includes a `frontend/vercel.json` config for client-side routing.
 1. Install Vercel CLI or link your repository to GitHub.
 2. Deploy the `frontend/` directory to Vercel.
 3. Add `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` to Vercel Environment Variables.
