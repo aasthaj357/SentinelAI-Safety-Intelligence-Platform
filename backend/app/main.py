@@ -20,7 +20,14 @@ app = FastAPI(title="Workplace Safety Intelligence Platform API")
 # origin, or specify explicit origins with credentials=True.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "*",
+        "https://sentinel-ai-safety-intelligence-pla.vercel.app",
+        "https://sentinel-ai-safety-intelligence-platform-7lr96uptk.vercel.app",
+        "http://localhost:5173",
+        "http://localhost:3000",
+        "http://localhost:8000",
+    ],
     allow_credentials=False,  # Fixed: wildcard origin requires credentials=False
     allow_methods=["*"],
     allow_headers=["*"],
