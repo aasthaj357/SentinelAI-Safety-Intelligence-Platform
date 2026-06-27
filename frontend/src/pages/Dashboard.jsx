@@ -16,7 +16,7 @@ const EMPTY_STATS = {
 };
 
 export default function Dashboard() {
-  const { activeProjectId, userId, setProject, setUser, isLoading } = useActiveProject();
+  const { activeProjectId, userId, setProject, setUser, isLoading, refreshKey } = useActiveProject();
   const [stats, setStats] = useState(EMPTY_STATS);
   const [hasData, setHasData] = useState(false);
   const [trainings, setTrainings] = useState([]);
@@ -39,9 +39,9 @@ export default function Dashboard() {
   }, []);
 
   useEffect(() => {
-    // Reset fetchedRef when activeProjectId changes so switching projects re-fetches
+    // Reset fetchedRef when activeProjectId or refreshKey changes so it re-fetches
     fetchedRef.current = false;
-  }, [activeProjectId]);
+  }, [activeProjectId, refreshKey]);
 
   useEffect(() => {
     // Run when context provides activeProjectId + userId (e.g. after login or context hydration)
@@ -50,7 +50,7 @@ export default function Dashboard() {
       fetchedRef.current = true;
       fetchDashboardData(activeProjectId, userId);
     }
-  }, [activeProjectId, userId, isLoading]);
+  }, [activeProjectId, userId, isLoading, refreshKey]);
 
   const initializeAndFetch = async () => {
     try {

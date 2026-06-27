@@ -38,48 +38,69 @@ async def upload_video(
 ):
     """Upload video via service role."""
     if not project_id or not user_id:
+        logger.error("Video upload failed: Missing project_id or user_id.")
         raise HTTPException(status_code=400, detail="project_id and user_id are required")
 
+    logger.info(f"Video upload initiated for project_id={project_id}, user_id={user_id}, filename={file.filename}")
     file_name = f"{uuid.uuid4()}-{_safe_filename(file.filename or 'video.mp4')}"
     storage_path = f"{project_id}/{file_name}"
     content = await file.read()
 
     try:
+        logger.info(f"Uploading file content to Supabase storage bucket 'videos': {storage_path}")
         supabase.storage.from_("videos").upload(
             storage_path,
             content,
             {"content-type": file.content_type or "video/mp4", "upsert": "false"},
         )
+        logger.info("Supabase storage upload completed successfully.")
     except Exception as e:
+        logger.error(f"Supabase storage upload failed: {e}")
         raise HTTPException(status_code=500, detail=f"Storage upload failed: {e}")
 
     public_url = supabase.storage.from_("videos").get_public_url(storage_path)
 
-    video_res = supabase.table("video_uploads").insert({
-        "project_id": project_id,
-        "user_id": user_id,
-        "title": file.filename or file_name,
-        "file_url": storage_path,
-        "status": "pending",
-    }).execute()
+    try:
+        logger.info("Creating database record in video_uploads table.")
+        video_res = supabase.table("video_uploads").insert({
+            "project_id": project_id,
+            "user_id": user_id,
+            "title": file.filename or file_name,
+            "file_url": storage_path,
+            "status": "pending",
+        }).execute()
+    except Exception as db_err:
+        logger.error(f"Failed to create video upload record: {db_err}")
+        raise HTTPException(status_code=500, detail=f"Database error on video record creation: {db_err}")
 
     if not video_res.data:
+        logger.error("Failed to create video record: Empty response returned from database.")
         raise HTTPException(status_code=500, detail="Failed to create video record")
 
     video_record = video_res.data[0]
     video_id = video_record["id"]
+    logger.info(f"Video record created successfully: video_id={video_id}")
 
-    job_res = supabase.table("analysis_jobs").insert({
-        "user_id": user_id,
-        "target_id": video_id,
-        "job_type": "full_video_pipeline",
-        "status": "queued",
-    }).execute()
+    try:
+        logger.info("Creating database record in analysis_jobs table.")
+        job_res = supabase.table("analysis_jobs").insert({
+            "user_id": user_id,
+            "target_id": video_id,
+            "job_type": "full_video_pipeline",
+            "status": "queued",
+        }).execute()
+    except Exception as db_err:
+        logger.error(f"Failed to create analysis job record: {db_err}")
+        raise HTTPException(status_code=500, detail=f"Database error on job creation: {db_err}")
 
     if not job_res.data:
+        logger.error("Failed to create analysis job: Empty response returned from database.")
         raise HTTPException(status_code=500, detail="Failed to create analysis job")
 
     job_id = job_res.data[0]["id"]
+    logger.info(f"Analysis job record created successfully: job_id={job_id}")
+    
+    logger.info("Queueing background task for process_video_job pipeline.")
     func = getattr(process_video_job, "run", process_video_job)
     background_tasks.add_task(func, job_id, video_id, project_id, storage_path, user_id)
 
@@ -102,8 +123,10 @@ async def upload_sop(
 ):
     """Upload SOP document via service role."""
     if not project_id or not user_id:
+        logger.error("SOP upload failed: Missing project_id or user_id.")
         raise HTTPException(status_code=400, detail="project_id and user_id are required")
 
+    logger.info(f"SOP upload initiated for project_id={project_id}, user_id={user_id}, filename={file.filename}")
     file_name = f"{uuid.uuid4()}-{_safe_filename(file.filename or 'document.pdf')}"
     storage_path = f"{project_id}/{file_name}"
     content = await file.read()
@@ -112,19 +135,24 @@ async def upload_sop(
     os.makedirs('tmp', exist_ok=True)
     tmp_path = os.path.join('tmp', file_name)
     try:
+        logger.info(f"Writing SOP file content to temporary path: {tmp_path}")
         with open(tmp_path, 'wb') as tmpf:
             tmpf.write(content)
+        logger.info("Temporary SOP file written successfully.")
     except Exception as e:
         logger.warning(f"Unable to write temporary SOP file for background parsing: {e}")
         tmp_path = None
 
     try:
+        logger.info(f"Uploading file content to Supabase storage bucket 'sop-documents': {storage_path}")
         supabase.storage.from_("sop-documents").upload(
             storage_path,
             content,
             {"content-type": file.content_type or "application/pdf", "upsert": "false"},
         )
+        logger.info("Supabase storage upload completed successfully.")
     except Exception as e:
+        logger.error(f"Supabase storage upload failed: {e}")
         raise HTTPException(status_code=500, detail=f"Storage upload failed: {e}")
 
     public_url = supabase.storage.from_("sop-documents").get_public_url(storage_path)
@@ -144,6 +172,7 @@ async def upload_sop(
         doc_payload["file_size"] = file_size
 
     try:
+        logger.info("Creating database record in sop_documents table.")
         doc_res = supabase.table("sop_documents").insert(doc_payload).execute()
     except Exception as err:
         if "file_size" in doc_payload:
@@ -152,11 +181,17 @@ async def upload_sop(
                 err,
             )
             doc_payload.pop("file_size", None)
-            doc_res = supabase.table("sop_documents").insert(doc_payload).execute()
+            try:
+                doc_res = supabase.table("sop_documents").insert(doc_payload).execute()
+            except Exception as retry_err:
+                logger.error(f"SOP insert retry failed: {retry_err}")
+                raise HTTPException(status_code=500, detail=f"Failed to create SOP record on retry: {retry_err}")
         else:
+            logger.error(f"Failed to create SOP record: {err}")
             raise HTTPException(status_code=500, detail=f"Failed to create SOP record: {err}")
 
     if not getattr(doc_res, "data", None):
+        logger.error("Failed to create SOP record: Empty response returned from database.")
         raise HTTPException(status_code=500, detail="Failed to create SOP record")
 
     document_id = str(doc_res.data[0]["id"])

@@ -5,7 +5,7 @@ import { API_URL } from '../lib/constants';
 import { HelpCircle, Brain, BookOpen, Quote, AlertTriangle, CheckCircle, Activity, Shield } from 'lucide-react';
 
 export default function Explainability() {
-  const { activeProjectId, userId, isLoading } = useActiveProject();
+  const { activeProjectId, userId, isLoading, refreshKey } = useActiveProject();
   const [violations, setViolations] = useState([]);
   const [selectedViolation, setSelectedViolation] = useState(null);
   const [explanation, setExplanation] = useState(null);
@@ -39,7 +39,7 @@ export default function Explainability() {
       fetchViolations();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeProjectId, isLoading]);
+  }, [activeProjectId, isLoading, refreshKey]);
 
   const explainViolation = async (violation) => {
     try {

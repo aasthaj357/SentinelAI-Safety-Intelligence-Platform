@@ -39,7 +39,7 @@ def get_dashboard_stats(project_id: str = Query(None), user_id: str = Query(None
     videos = supabase.table("video_uploads").select("id, title, status, file_url, created_at").eq("project_id", project_id).eq("user_id", user_id).execute()
     video_ids = [v["id"] for v in (videos.data or [])]
 
-    viol_res = supabase.table("violation_tracking").select("id, video_uploads!inner(project_id)").eq("video_uploads.project_id", project_id).eq("user_id", user_id).execute()
+    viol_res = supabase.table("violation_tracking").select("id, violation_type, timestamp, confidence, metadata, worker_id, video_uploads!inner(project_id)").eq("video_uploads.project_id", project_id).eq("user_id", user_id).execute()
     violations = viol_res.data or []
 
     evidence = supabase.table("evidence_records").select("id").eq("project_id", project_id).eq("user_id", user_id).execute()
@@ -59,12 +59,48 @@ def get_dashboard_stats(project_id: str = Query(None), user_id: str = Query(None
 
     reports = supabase.table("generated_reports").select("*").eq("project_id", project_id).eq("user_id", user_id).order("created_at", desc=True).limit(5).execute()
 
-    # Fetch latest job result for timeline + worker_summary
+    # Fetch latest job result for timeline + worker_summary fallback
     job_result = {}
     if video_ids:
         latest_job_res = supabase.table("analysis_jobs").select("result").in_("target_id", video_ids).eq("user_id", user_id).eq("status", "completed").order("created_at", desc=True).limit(1).execute()
         if latest_job_res.data:
             job_result = latest_job_res.data[0].get("result") or {}
+
+    # Build timeline and worker_summary dynamically from violation_tracking
+    timeline = []
+    worker_summary = {}
+    
+    for v in sorted(violations, key=lambda x: x.get("timestamp") or 0.0):
+        meta = v.get("metadata") or {}
+        worker_lbl = meta.get("worker_id") or v.get("worker_id") or "Worker"
+        wid_key = worker_lbl.replace("Worker_", "").strip()
+        ppe_type = v.get("violation_type", "").replace("no-", "")
+        ts = float(v.get("timestamp") or 0.0)
+        
+        timeline.append({
+            "timestamp_fmt": f"{ts:.1f}s",
+            "worker_id": worker_lbl,
+            "ppe_type": ppe_type,
+            "description": f"Missing {ppe_type} compliance.",
+            "confidence": float(v.get("confidence") or 0.0)
+        })
+        
+        if wid_key not in worker_summary:
+            worker_summary[wid_key] = {
+                "violations": [],
+                "ppe_types_missing": set(),
+                "total_duration": 0.0
+            }
+        worker_summary[wid_key]["violations"].append(v["id"])
+        worker_summary[wid_key]["ppe_types_missing"].add(ppe_type)
+        worker_summary[wid_key]["total_duration"] += float(meta.get("duration_seconds") or 0.5)
+
+    # Convert sets to lists for JSON serialization
+    for wid in worker_summary:
+        worker_summary[wid]["ppe_types_missing"] = list(worker_summary[wid]["ppe_types_missing"])
+
+    final_timeline = timeline if timeline else (job_result.get("violation_timeline") or job_result.get("timeline") or [])
+    final_worker_summary = worker_summary if worker_summary else (job_result.get("worker_summary") or {})
 
     return {
         "total_violations": viol_count,
@@ -73,8 +109,8 @@ def get_dashboard_stats(project_id: str = Query(None), user_id: str = Query(None
         "incident_risk_score": max_risk if risks.data else None,
         "evidence_records": evidence_count,
         "latest_risk_details": risks.data[0]["details"] if risks.data else None,
-        "timeline": job_result.get("violation_timeline") or job_result.get("timeline") or [],
-        "worker_summary": job_result.get("worker_summary") or {},
+        "timeline": final_timeline,
+        "worker_summary": final_worker_summary,
         "recent_reports": reports.data or [],
         "uploaded_videos": videos.data or [],
     }

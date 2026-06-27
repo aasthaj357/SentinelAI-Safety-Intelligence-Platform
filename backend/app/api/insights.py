@@ -26,7 +26,7 @@ def get_risk(project_id: str, user_id: str, limit: int = 3):
 
 @router.get("/predictions")
 def get_predictions(project_id: str, user_id: str, limit: int = 3):
-    return supabase.table("incident_predictions").select("*").eq("project_id", project_id).order("created_at", desc=True).limit(limit).execute().data
+    return supabase.table("incident_predictions").select("*").eq("project_id", project_id).eq("user_id", user_id).order("created_at", desc=True).limit(limit).execute().data
 
 @router.get("/trainings")
 def get_trainings(project_id: str, user_id: str, limit: int = 3):

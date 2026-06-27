@@ -7,7 +7,7 @@ import { API_URL } from '../lib/constants';
 export default function AnalysisViewer() {
   const { videoId } = useParams();
   const [searchParams] = useSearchParams();
-  const { activeProjectId, userId, isLoading } = useActiveProject();
+  const { activeProjectId, userId, isLoading, refreshKey } = useActiveProject();
   const [video, setVideo] = useState(null);
   const [videoUrl, setVideoUrl] = useState(null);
   const [transcript, setTranscript] = useState(null);
@@ -42,7 +42,7 @@ export default function AnalysisViewer() {
   useEffect(() => {
     if (!isLoading && activeProjectId && userId) fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [videoId, activeProjectId, userId, isLoading]);
+  }, [videoId, activeProjectId, userId, isLoading, refreshKey]);
 
   useEffect(() => {
     // Once video is loaded and we have a seek target, jump to it

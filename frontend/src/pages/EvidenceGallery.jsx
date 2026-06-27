@@ -6,7 +6,7 @@ import { API_URL } from '../lib/constants';
 import { ShieldAlert, Eye, Download, ZoomIn, ZoomOut, Loader2, AlertCircle, X, ChevronRight } from 'lucide-react';
 
 export default function EvidenceGallery() {
-  const { activeProjectId, userId, isLoading } = useActiveProject();
+  const { activeProjectId, userId, isLoading, refreshKey } = useActiveProject();
   const navigate = useNavigate();
   const [violations, setViolations] = useState([]);
   const [selected, setSelected] = useState(null);
@@ -34,7 +34,7 @@ export default function EvidenceGallery() {
   useEffect(() => {
     if (!isLoading && activeProjectId && userId) fetchViolations();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeProjectId, userId, isLoading]);
+  }, [activeProjectId, userId, isLoading, refreshKey]);
 
   const getSeverity = (confidence, isGap = false) => {
     if (isGap) return { level: 'High', color: 'bg-orange-100 text-orange-800 border-orange-200 shadow-sm font-bold' };

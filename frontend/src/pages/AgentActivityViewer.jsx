@@ -5,10 +5,8 @@ import { API_URL } from '../lib/constants';
 import { CheckCircle2, AlertCircle, Loader2, Clock, ChevronDown, ChevronUp, Brain } from 'lucide-react';
 
 export default function AgentActivityViewer() {
-  const { activeProjectId, userId, isLoading } = useActiveProject();
-  const [job, setJob] = useState(null);
+  const { activeProjectId, userId, isLoading, latestJob } = useActiveProject();
   const [expandedAgent, setExpandedAgent] = useState(null);
-  const [pollingActive, setPollingActive] = useState(true);
 
   const agentConfig = {
     'frame_extraction': { title: 'Frame Extraction Agent', desc: 'Extracts video frames every 0.5 seconds and stores them.', order: 1 },
@@ -25,34 +23,7 @@ export default function AgentActivityViewer() {
     'training_recommendation': { title: 'Training Recommendation Agent', desc: 'Recommends safety modules mapped to violations.', order: 12 }
   };
 
-  const fetchLatestJob = async () => {
-    if (!activeProjectId || !userId) return;
-    try {
-      const response = await axios.get(`${API_URL}/api/analysis/project/${activeProjectId}/latest?user_id=${userId}`);
-      if (response.data) {
-        setJob(response.data);
-        if (response.data.status === 'completed' || response.data.status === 'failed') {
-          setPollingActive(false);
-        }
-      } else {
-        setJob(null);
-      }
-    } catch (err) {
-      console.error("Failed to fetch latest job status:", err);
-    }
-  };
-
-  useEffect(() => {
-    let interval = null;
-    if (!isLoading && activeProjectId && userId && pollingActive) {
-      fetchLatestJob();
-      interval = setInterval(fetchLatestJob, 2000);
-    }
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeProjectId, userId, isLoading, pollingActive]);
+  const job = latestJob;
 
   const getStatusIcon = (status) => {
     switch (status) {

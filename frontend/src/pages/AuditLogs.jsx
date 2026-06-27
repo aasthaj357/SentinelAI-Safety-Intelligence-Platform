@@ -5,7 +5,7 @@ import { API_URL } from '../lib/constants';
 import { Shield, List, Scroll, ShieldAlert, Cpu } from 'lucide-react';
 
 export default function AuditLogs() {
-  const { activeProjectId, isLoading } = useActiveProject();
+  const { activeProjectId, userId, isLoading, refreshKey } = useActiveProject();
   const [logs, setLogs] = useState([]);
   const [traces, setTraces] = useState([]);
   const [activeTab, setActiveTab] = useState('audit'); // 'audit' or 'traces'
@@ -15,7 +15,10 @@ export default function AuditLogs() {
     try {
       setLoading(true);
       if (activeTab === 'audit') {
-        const response = await axios.get(`${API_URL}/api/audit/logs`);
+        const url = userId 
+          ? `${API_URL}/api/audit/logs?user_id=${userId}`
+          : `${API_URL}/api/audit/logs`;
+        const response = await axios.get(url);
         setLogs(response.data || []);
       } else {
         const response = await axios.get(`${API_URL}/api/audit/traces?project_id=${activeProjectId}`);
@@ -33,7 +36,7 @@ export default function AuditLogs() {
       fetchData();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeProjectId, isLoading, activeTab]);
+  }, [activeProjectId, isLoading, activeTab, refreshKey]);
 
   return (
     <div className="p-8 bg-gray-50 dark:bg-gray-900 min-h-screen">

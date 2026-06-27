@@ -1,6 +1,8 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useState, useContext, useEffect, useCallback } from 'react';
+import { createContext, useState, useContext, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../lib/supabase';
+import axios from 'axios';
+import { API_URL } from '../lib/constants';
 
 const DEMO_USER_ID = '00000000-0000-4000-a000-000000000001';
 
@@ -10,6 +12,9 @@ export function ActiveProjectProvider({ children }) {
   const [activeProjectId, setActiveProjectId] = useState(null);
   const [userId, setUserId] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [latestJob, setLatestJob] = useState(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const lastStatusRef = useRef(null);
 
   const applyUser = useCallback((uid) => {
     if (!uid) {
@@ -85,6 +90,68 @@ export function ActiveProjectProvider({ children }) {
     }
   }, [activeProjectId, isLoading]);
 
+  const fetchLatestJob = useCallback(async (projectId, uid) => {
+    if (!projectId || !uid) return null;
+    try {
+      const response = await axios.get(`${API_URL}/api/analysis/project/${projectId}/latest?user_id=${uid}`);
+      return response.data || null;
+    } catch (err) {
+      console.warn("Failed to fetch latest job:", err);
+      return null;
+    }
+  }, []);
+
+  const refreshActiveJob = useCallback(async () => {
+    if (isLoading || !activeProjectId || !userId) return;
+    const jobData = await fetchLatestJob(activeProjectId, userId);
+    setLatestJob(jobData);
+    lastStatusRef.current = jobData?.status || null;
+    setRefreshKey(prev => prev + 1);
+  }, [activeProjectId, userId, isLoading, fetchLatestJob]);
+
+  // Polling loop to watch background job execution
+  useEffect(() => {
+    if (isLoading || !activeProjectId || !userId) {
+      setLatestJob(null);
+      lastStatusRef.current = null;
+      return;
+    }
+
+    let isSubscribed = true;
+    let timerId = null;
+
+    const checkJob = async () => {
+      const jobData = await fetchLatestJob(activeProjectId, userId);
+      if (!isSubscribed) return;
+
+      setLatestJob(jobData);
+
+      const prevStatus = lastStatusRef.current;
+      const currentStatus = jobData?.status || null;
+      lastStatusRef.current = currentStatus;
+
+      // Trigger UI refresh when a job completes or fails
+      if (prevStatus && prevStatus !== currentStatus && (currentStatus === 'completed' || currentStatus === 'failed')) {
+        setRefreshKey(prev => prev + 1);
+      }
+
+      if (currentStatus === 'queued' || currentStatus === 'processing') {
+        // Fast polling while analysis is active
+        timerId = setTimeout(checkJob, 3000);
+      } else {
+        // Slow polling when idle
+        timerId = setTimeout(checkJob, 10000);
+      }
+    };
+
+    checkJob();
+
+    return () => {
+      isSubscribed = false;
+      if (timerId) clearTimeout(timerId);
+    };
+  }, [activeProjectId, userId, isLoading, fetchLatestJob]);
+
   const setProject = (projectId) => setActiveProjectId(projectId);
   const clearProject = () => setActiveProjectId(null);
   const setUser = (uid) => applyUser(uid);
@@ -97,6 +164,9 @@ export function ActiveProjectProvider({ children }) {
       clearProject,
       setUser,
       isLoading,
+      latestJob,
+      refreshKey,
+      refreshActiveJob,
     }}>
       {children}
     </ActiveProjectContext.Provider>

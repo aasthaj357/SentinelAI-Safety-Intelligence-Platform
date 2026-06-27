@@ -835,7 +835,7 @@ def process_video_job(
             fid = assoc["frame_id"]
             ts = assoc["timestamp"]
             
-            worker_lbl = next(w["worker_label"] for w in workers_list if w["id"] == wid)
+            worker_lbl = next((w["worker_label"] for w in workers_list if w["id"] == wid), "Unknown Worker")
             
             # Construct factual observations
             missing_items = []
@@ -899,7 +899,10 @@ def process_video_job(
             ts = assoc["timestamp"]
             
             # Find the frame image path to assert existence
-            frame_rec = next(f for f in extracted_frames if f["frame_id"] == fid)
+            frame_rec = next((f for f in extracted_frames if f["frame_id"] == fid), None)
+            if not frame_rec:
+                logger.warning(f"Auditor: Frame record not found for frame_id {fid}, skipping violation.")
+                continue
             image_path = frame_rec.get("image_path")
             
             # STRICT NULL SAFETY ASSERTIONS
@@ -917,6 +920,11 @@ def process_video_job(
                     violation_type = f"no-{req}"
                     
                     # Store to violation_tracking
+                    worker_lbl = next((w["worker_label"] for w in workers_list if w["id"] == wid), "Unknown Worker")
+                    frame_number = frame_rec["frame_number"]
+                    frame_dets = detections_by_frame.get(frame_number) or []
+                    bbox = next((d["bbox"] for d in frame_dets if d["worker_id"] == wid and d["class_name"].lower() == "person"), [0, 0, 100, 100])
+                    
                     viol_res = supabase.table("violation_tracking").insert({
                         "video_id": video_id,
                         "user_id": user_id,
@@ -926,15 +934,15 @@ def process_video_job(
                         "frame_id": fid,
                         "worker_id": wid,
                         "metadata": {
-                            "worker_id": next(w["worker_label"] for w in workers_list if w["id"] == wid),
+                            "worker_id": worker_lbl,
                             "ppe_type": req,
                             "source": "compliance_auditor",
                             "duration_seconds": 0.5,
-                            "frame_start": frame_rec["frame_number"],
-                            "frame_end": frame_rec["frame_number"],
-                            "frame_number": frame_rec["frame_number"],
+                            "frame_start": frame_number,
+                            "frame_end": frame_number,
+                            "frame_number": frame_number,
                             "timestamp": ts,
-                            "bbox": next((d["bbox"] for d in detections_by_frame[frame_rec["frame_number"]] if d["worker_id"] == wid and d["class_name"].lower() == "person"), [0, 0, 100, 100]),
+                            "bbox": bbox,
                             "confidence": 0.85,
                             "violation_type": violation_type
                         }
@@ -994,7 +1002,7 @@ def process_video_job(
                 logger.warning("EvidenceBuilder: Assertions failed. Skipping.")
                 continue
                 
-            worker_lbl = next(w["worker_label"] for w in workers_list if w["id"] == viol["worker_id"])
+            worker_lbl = next((w["worker_label"] for w in workers_list if w["id"] == viol["worker_id"]), "Unknown Worker")
             risk_reason = f"Worker {worker_lbl} observed without required safety {viol['violation'].replace('no-', '')}."
             
             evidence_payload = {

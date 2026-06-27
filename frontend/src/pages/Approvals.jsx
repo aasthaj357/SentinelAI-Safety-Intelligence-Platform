@@ -5,7 +5,7 @@ import { API_URL } from '../lib/constants';
 import { ShieldCheck, CheckCircle2, XCircle, Clock } from 'lucide-react';
 
 export default function Approvals() {
-  const { activeProjectId, userId, isLoading } = useActiveProject();
+  const { activeProjectId, userId, isLoading, refreshKey } = useActiveProject();
   const [approvals, setApprovals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [actioningId, setActioningId] = useState(null);
@@ -27,7 +27,7 @@ export default function Approvals() {
       fetchApprovals();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeProjectId, isLoading]);
+  }, [activeProjectId, isLoading, refreshKey]);
 
   const handleAction = async (requestId, action) => {
     if (!userId) return;

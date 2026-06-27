@@ -170,7 +170,7 @@ const FileUploader = ({
 };
 
 export default function Uploads() {
-  const { activeProjectId, userId, setProject } = useActiveProject();
+  const { activeProjectId, userId, setProject, refreshActiveJob } = useActiveProject();
   const [videoStatus, setVideoStatus] = useState('idle');
   const [videoProgress, setVideoProgress] = useState(0);
   const [videoError, setVideoError] = useState('');
@@ -251,6 +251,9 @@ export default function Uploads() {
       setAnalysisStatus(
         `Analysis job ${result.job_id} queued. YOLOv8 + PPE pipeline is processing the video.`
       );
+      
+      // Trigger context update to kick off active polling
+      await refreshActiveJob();
     } catch (err) {
       console.error(err);
       setVideoProgress(0);
@@ -277,6 +280,9 @@ export default function Uploads() {
       setSopFileSize(sizeInBytes);
       setSopProgress(100);
       setSopStatus('success');
+      
+      // Trigger context update
+      await refreshActiveJob();
     } catch (err) {
       console.error(err);
       setSopProgress(0);

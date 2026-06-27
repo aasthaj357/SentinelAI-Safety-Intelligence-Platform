@@ -129,7 +129,7 @@ function EvidencePanel({ source, onSeek, onClose }) {
 }
 
 export default function SafetyCopilot() {
-  const { activeProjectId, userId } = useActiveProject();
+  const { activeProjectId, userId, refreshKey } = useActiveProject();
   const navigate = useNavigate();
   const [messages, setMessages] = useState([
     { role: 'system', content: 'Hello! I\'m your AI Safety Copilot. Every answer is grounded in your evidence records and SOP. Ask me anything about violations, risk scores, PPE compliance, or training.' },
@@ -138,6 +138,17 @@ export default function SafetyCopilot() {
   const [loading, setLoading] = useState(false);
   const [selectedSource, setSelectedSource] = useState(null);
   const endRef = useRef(null);
+  const lastRefreshKeyRef = useRef(refreshKey);
+
+  useEffect(() => {
+    if (refreshKey > 0 && lastRefreshKeyRef.current !== refreshKey) {
+      lastRefreshKeyRef.current = refreshKey;
+      setMessages(prev => [...prev, {
+        role: 'system',
+        content: 'System notification: A new analysis run completed. Copilot context has been updated with the latest safety data.'
+      }]);
+    }
+  }, [refreshKey]);
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
 
