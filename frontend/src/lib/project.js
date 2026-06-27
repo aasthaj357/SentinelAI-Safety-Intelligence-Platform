@@ -26,15 +26,15 @@ export async function getOrCreateProject() {
     throw new Error('Failed to create project via backend for demo user');
   }
 
-  // Check for existing project
-  const { data: existing } = await supabase
+  // Check for existing projects sorted by oldest first
+  const { data: projects } = await supabase
     .from('projects')
     .select('id')
     .eq('name', projectName)
     .eq('user_id', user.id)
-    .maybeSingle();
+    .order('created_at', { ascending: true });
 
-  if (existing) return existing.id;
+  if (projects && projects.length > 0) return projects[0].id;
 
   // Try backend ensure-project endpoint (uses service role, bypasses RLS)
   try {
@@ -75,14 +75,14 @@ export async function getProjectId() {
     }
   }
 
-  const { data: project } = await supabase
+  const { data: projects } = await supabase
     .from('projects')
     .select('id')
     .eq('name', `Project-${user.id}`)
     .eq('user_id', user.id)
-    .maybeSingle();
+    .order('created_at', { ascending: true });
 
-  return project?.id ?? null;
+  return projects && projects.length > 0 ? projects[0].id : null;
 }
 
 export async function ensureActiveProject() {
